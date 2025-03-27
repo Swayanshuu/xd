@@ -1,19 +1,20 @@
 from telegram import Update
-from telegram.ext import Application, CommandHandler, CallbackContext, JobQueue
+from telegram.ext import Application, CommandHandler, CallbackContext, JobQueue, MessageHandler, filters
 import datetime
 import asyncio
 import os
-import logging
 import flask
-
-# Logging setup
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
 
 # Telegram Bot Token
 TOKEN = "7873913951:AAFgNSYhylB6bBCgT4ZNCrhbEzeaXZnCc3g"
 
-# === Telegram Bot Handlers ===
+# Initialize Flask app
+app = flask.Flask(__name__)
+
+# Initialize Telegram Bot
+telegram_app = Application.builder().token(TOKEN).build()
+
+# =================== Telegram Bot Functions ===================
 
 async def start(update: Update, context: CallbackContext):
     """Start command handler"""
@@ -23,26 +24,22 @@ async def start(update: Update, context: CallbackContext):
 
 async def send_reminder(context: CallbackContext):
     """Send daily SWE preparation reminder"""
-    try:
-        job = context.job
-        message = (
-            "🔥 *Daily SWE Preparation Reminder* 🔥\n\n"
-            "📌 *DSA:* Solve 3 problems (Leetcode/Codeforces)\n"
-            "📌 *CP:* Participate in a contest or upsolve 2 problems\n"
-            "📌 *CS:* Revise OS, DBMS, CN topics\n"
-            "📌 *Development:* Work on your Java project\n\n"
-            "Keep pushing! 💪🚀"
-        )
-        await context.bot.send_message(chat_id=job.context, text=message, parse_mode="Markdown")
-    except Exception as e:
-        logger.error(f"Error in send_reminder: {e}")
+    job = context.job
+    message = (
+        "🔥 *Daily SWE Preparation Reminder* 🔥\n\n"
+        "📌 *DSA:* Solve 3 problems (Leetcode/Codeforces)\n"
+        "📌 *CP:* Participate in a contest or upsolve 2 problems\n"
+        "📌 *CS:* Revise OS, DBMS, CN topics\n"
+        "📌 *Development:* Work on your Java project\n\n"
+        "Keep pushing! 💪🚀"
+    )
+    await context.bot.send_message(chat_id=job.context, text=message, parse_mode="Markdown")
 
 async def schedule_reminders(update: Update, context: CallbackContext):
     """Schedule daily reminders"""
     chat_id = update.message.chat_id
     remove_job_if_exists(str(chat_id), context)
     
-    # Set reminder at 7:00 AM UTC
     context.job_queue.run_daily(
         send_reminder, 
         time=datetime.time(hour=7, minute=0, second=0), 
@@ -61,11 +58,6 @@ async def stop_reminders(update: Update, context: CallbackContext):
     else:
         await update.message.reply_text("❌ No active reminders found.")
 
-async def test_reminder(update: Update, context: CallbackContext):
-    """Manually trigger a reminder for testing"""
-    await send_reminder(context)
-    await update.message.reply_text("✅ Test reminder sent!")
-
 def remove_job_if_exists(name: str, context: CallbackContext):
     """Remove existing job if it exists"""
     current_jobs = context.job_queue.get_jobs_by_name(name)
@@ -75,37 +67,24 @@ def remove_job_if_exists(name: str, context: CallbackContext):
         job.schedule_removal()
     return True
 
-# === Main Bot Function ===
-def main():
-    """Main function to run the bot"""
-    app = Application.builder().token(TOKEN).build()
+# Add command handlers
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("remind", schedule_reminders))
+telegram_app.add_handler(CommandHandler("stop", stop_reminders))
 
-    # Add command handlers
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("remind", schedule_reminders))
-    app.add_handler(CommandHandler("stop", stop_reminders))
-    app.add_handler(CommandHandler("test", test_reminder))  # Test command
+# =================== Flask Webhook ===================
 
-    # Ensure JobQueue is running
-    app.job_queue.start()
-
-    print("🚀 Bot is running...")
-    try:
-        asyncio.get_running_loop()
-        app.run_polling()
-    except RuntimeError:
-        asyncio.run(app.run_polling())
-
-# === Flask Server (for Render Deployment) ===
-flask_app = flask.Flask(__name__)
-
-@flask_app.route("/")
+@app.route("/")
 def home():
     return "Bot is running!"
 
+@app.route("/webhook", methods=["POST"])
+def webhook():
+    """Receives updates from Telegram"""
+    update = Update.de_json(flask.request.get_json(), telegram_app.bot)
+    telegram_app.process_update(update)
+    return "OK", 200  # Respond with 200 to confirm
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    flask_app.run(host="0.0.0.0", port=port)
-
-# Run the bot
-main()
+    app.run(host="0.0.0.0", port=port)
