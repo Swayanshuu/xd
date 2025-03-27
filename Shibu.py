@@ -1,4 +1,4 @@
-from telegram import Update
+from telegram import Bot, Update
 import telegram
 from telegram.ext import Application, CommandHandler, CallbackContext, JobQueue, MessageHandler, filters
 import datetime
@@ -81,7 +81,7 @@ def home():
 
 @app.route("/webhook", methods=["POST"])
 def webhook():
-    update = telegram.Update.de_json(flask.request.get_json(), bot)
+    update = telegram.Update.de_json(flask.request.get_json(), Bot)
 
     # Run the async function inside an event loop
     asyncio.run(telegram_app.process_update(update))
