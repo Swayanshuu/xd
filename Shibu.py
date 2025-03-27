@@ -83,21 +83,18 @@ def home():
 async def webhook():
     """Handle incoming Telegram updates via webhook."""
     update = Update.de_json(flask.request.get_json(), telegram_app.bot)
-
+    
     if not telegram_app.running:
+        print("Initializing Telegram bot...")
         await telegram_app.initialize()  # Ensure app is initialized
         await telegram_app.start()
         await telegram_app.updater.start_polling()
 
+    print("Processing update...")
     await telegram_app.process_update(update)  # Correctly process update asynchronously
     return "OK", 200
 
-
-
-
-
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))  # ✅ Use PORT from environment
+    print(f"Starting Flask server on port {port}...")
     app.run(host="0.0.0.0", port=port)
-
