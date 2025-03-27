@@ -80,19 +80,18 @@ def home():
     return "Bot is running!"
 
 @app.route("/webhook", methods=["POST"])
-async def webhook():
+def webhook():
     """Handle incoming Telegram updates via webhook."""
     update = Update.de_json(flask.request.get_json(), telegram_app.bot)
-    
-    if not telegram_app.running:
-        print("Initializing Telegram bot...")
-        await telegram_app.initialize()  # Ensure app is initialized
-        await telegram_app.start()
-        await telegram_app.updater.start_polling()
 
-    print("Processing update...")
-    await telegram_app.process_update(update)  # Correctly process update asynchronously
+    if not telegram_app.running:
+        asyncio.run(telegram_app.initialize())  # Ensure app is initialized
+        asyncio.run(telegram_app.start())
+        asyncio.run(telegram_app.updater.start_polling())
+
+    asyncio.run(telegram_app.process_update(update))  # Correctly process update asynchronously
     return "OK", 200
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))  # ✅ Use PORT from environment
