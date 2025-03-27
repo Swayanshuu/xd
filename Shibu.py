@@ -79,11 +79,11 @@ def home():
     return "Bot is running!"
 
 @app.route("/webhook", methods=["POST"])
-def webhook():
-    """Receives updates from Telegram"""
-    update = Update.de_json(flask.request.get_json(), telegram_app.bot)
-    telegram_app.process_update(update)
-    return "OK", 200  # Respond with 200 to confirm
+async def webhook():
+    update = telegram.Update.de_json(flask.request.get_json(), bot)
+    await telegram_app.process_update(update)  # <-- Ensure this is awaited
+    return "OK", 200
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
