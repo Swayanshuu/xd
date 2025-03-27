@@ -80,10 +80,14 @@ def home():
     return "Bot is running!"
 
 @app.route("/webhook", methods=["POST"])
-async def webhook():
+def webhook():
     update = telegram.Update.de_json(flask.request.get_json(), bot)
-    await telegram_app.process_update(update)  # <-- Ensure this is awaited
+
+    # Run the async function inside an event loop
+    asyncio.run(telegram_app.process_update(update))
+
     return "OK", 200
+
 
 
 if __name__ == "__main__":
