@@ -2,8 +2,10 @@ from telegram import Update
 from telegram.ext import Application, CommandHandler, CallbackContext, JobQueue
 import datetime
 import asyncio
+import os
 
-TOKEN = "7873913951:AAFgNSYhylB6bBCgT4ZNCrhbEzeaXZnCc3g"
+
+TOKEN = os.getenv("7873913951:AAFgNSYhylB6bBCgT4ZNCrhbEzeaXZnCc3g")  # Replace with your bot's token
 
 async def start(update: Update, context: CallbackContext):
     await update.message.reply_text(
