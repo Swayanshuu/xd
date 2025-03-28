@@ -49,7 +49,7 @@ async def schedule_reminders(update: Update, context: CallbackContext):
     
     context.job_queue.run_daily(
         send_reminder, 
-        time=datetime.time(hour=7, minute=0, second=0), 
+        time=datetime.time(hour=20, minute=30, second=0), 
         chat_id=chat_id, 
         name=str(chat_id),
         context=chat_id
